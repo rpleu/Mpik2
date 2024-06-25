@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ movie.title }}</h1>
+
+<form id="edit-movie-form" method="POST">
+    <label for="title">Titre:</label>
+    <input type="text" id="title" name="title" value="{{ movie.title }}" required>
+    
+    <label for="description">Description:</label>
+    <textarea id="description" name="description">{{ movie.description }}</textarea>
+    
+    <label for="release_date">Date de sortie:</label>
+    <input type="date" id="release_date" name="release_date" value="{{ movie.release_date.strftime('%Y-%m-%d') if movie.release_date else '' }}">
+    
+    <label for="trailer_url">URL de la bande-annonce:</label>
+    <input type="url" id="trailer_url" name="trailer_url" value="{{ movie.trailer_url }}">
+    
+    <button type="submit">Mettre à jour</button>
+</form>
+
+{% if movie.trailer_url %}
+<h2>Bande-annonce</h2>
+<iframe width="560" height="315" src="{{ movie.trailer_url }}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+{% endif %}
+
+<h2>Noter ce film</h2>
+<input type="number" id="rating" min="1" max="5">
+<button onclick="rateMovie({{ movie.id }})">Noter</button>
+
+<script>
+function rateMovie(movieId) {
+    const rating = document.getElementById('rating').value;
+    fetch('/rate_movie', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ movie_id: movieId, rating: rating }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Film noté avec succès !');
+        } else {
+            alert('Erreur lors de la notation du film');
+        }
+    });
+}
+
+document.getElementById('edit-movie-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    fetch('/movie/{{ movie.id }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Informations du film mises à jour avec succès !');
+        } else {
+            alert('Erreur lors de la mise à jour des informations du film');
+        }
+    });
+});
+</script>
+{% endblock %}

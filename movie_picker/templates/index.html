@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+<div id="app">
+    {% if current_user.is_authenticated %}
+        <p>Bienvenue, {{ current_user.username }} ! <a href="{{ url_for('logout') }}">Se déconnecter</a></p>
+       
+        <section id="add-movie">
+            <h2>Ajouter un film</h2>
+            <form id="add-movie-form">
+                <input type="text" id="movie-title" placeholder="Titre du film" required>
+                <textarea id="movie-description" placeholder="Description du film"></textarea>
+                <input type="date" id="movie-release-date" placeholder="Date de sortie">
+                <input type="url" id="movie-trailer" placeholder="URL de la bande-annonce YouTube">
+                <button type="submit">Ajouter</button>
+            </form>
+        </section>
+
+        <section id="movie-list">
+            <h2>Liste des films</h2>
+            <ul id="movies">
+                {% for movie in movies %}
+                    <li><a href="{{ url_for('movie_details', movie_id=movie.id) }}">{{ movie.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section id="recommendations">
+            <h2>Recommandations</h2>
+            <div>
+                <label for="present-users">Utilisateurs présents :</label>
+                <select id="present-users" multiple>
+                    {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button onclick="getRecommendations()">Obtenir des recommandations</button>
+            <ul id="recommended-movies"></ul>
+        </section>
+    {% else %}
+        <h2>Bienvenue sur Movie Picker</h2>
+        <p>Veuillez vous connecter pour accéder à toutes les fonctionnalités.</p>
+        <a href="{{ url_for('login') }}">Se connecter</a>
+        <a href="{{ url_for('register') }}">S'inscrire</a>
+    {% endif %}
+</div>
+
+<script>
+document.getElementById('add-movie-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    addMovie();
+});
+
+function addMovie() {
+    const title = document.getElementById('movie-title').value;
+    const description = document.getElementById('movie-description').value;
+    const releaseDate = document.getElementById('movie-release-date').value;
+    const trailerUrl = document.getElementById('movie-trailer').value;
+
+    fetch('/add_movie', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title: title,
+            description: description,
+            release_date: releaseDate,
+            trailer_url: trailerUrl
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Film ajouté avec succès !');
+            // Recharger la liste des films
+            location.reload();
+        } else {
+            alert('Erreur lors de l'ajout du film.');
+        }
+    });
+}
+
+function getRecommendations() {
+    const presentUsers = Array.from(document.getElementById('present-users').selectedOptions).map(option => option.value);
+
+    fetch('/get_recommendations', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ present_users: presentUsers }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        const recommendedMovies = document.getElementById('recommended-movies');
+        recommendedMovies.innerHTML = '';
+        data.forEach(movie => {
+            const li = document.createElement('li');
+            li.textContent = `${movie.title} - Score: ${movie.score.toFixed(2)}`;
+            recommendedMovies.appendChild(li);
+        });
+    });
+}
+</script>
+{% endblock %}
